@@ -245,45 +245,91 @@ export default class TimestampPlugin extends Plugin {
 		);
 
 		// This triggers the React component to be loaded
-		this.app.workspace.getLeavesOfType(VIDEO_VIEW).forEach(async (leaf) => {
-			if (leaf.view instanceof VideoView) {
-				const setupPlayer = (
-					player: ReactPlayer,
-					setPlaying: React.Dispatch<React.SetStateAction<boolean>>
-				) => {
-					this.player = player;
-					this.setPlaying = setPlaying;
-				};
+		const videoLeafs = this.app.workspace
+			.getLeavesOfType(VIDEO_VIEW)
+			.filter((leaf) => leaf.view instanceof VideoView);
+		if (videoLeafs.length > 0) {
+			const leaf = videoLeafs[0];
 
-				const setupError = (err: string) => {
-					editor.replaceSelection(
-						editor.getSelection() +
-							`\n> [!error] Streaming Error \n> ${err}\n`
+			const setupPlayer = (
+				player: ReactPlayer,
+				setPlaying: React.Dispatch<React.SetStateAction<boolean>>
+			) => {
+				this.player = player;
+				this.setPlaying = setPlaying;
+			};
+
+			const setupError = (err: string) => {
+				console.log("react player err: ", err);
+				editor.replaceSelection(
+					editor.getSelection() +
+						`\n> [!error] Streaming Error \n> ${err}\n`
+				);
+			};
+
+			const saveTimeOnUnload = async () => {
+				if (this.player) {
+					this.settings.urlStartTimeMap.set(
+						url,
+						Number(this.player.getCurrentTime().toFixed(0))
 					);
-				};
-
-				const saveTimeOnUnload = async () => {
-					if (this.player) {
-						this.settings.urlStartTimeMap.set(
-							url,
-							Number(this.player.getCurrentTime().toFixed(0))
-						);
-					}
-					await this.saveSettings();
-				};
-
-				// create a new video instance, sets up state/unload functionality, and passes in a start time if available else 0
-				leaf.setEphemeralState({
-					url,
-					setupPlayer,
-					setupError,
-					saveTimeOnUnload,
-					start: ~~this.settings.urlStartTimeMap.get(url),
-				});
-
+				}
 				await this.saveSettings();
-			}
-		});
+			};
+
+			// create a new video instance, sets up state/unload functionality, and passes in a start time if available else 0
+			leaf.setEphemeralState({
+				url,
+				setupPlayer,
+				setupError,
+				saveTimeOnUnload,
+				start: ~~this.settings.urlStartTimeMap.get(url),
+			});
+
+			await this.saveSettings();
+		}
+
+		// this.app.workspace.getLeavesOfType(VIDEO_VIEW).forEach(async (leaf) => {
+		// 	if (leaf.view instanceof VideoView) {
+
+		// 		const setupPlayer = (
+		// 			player: ReactPlayer,
+		// 			setPlaying: React.Dispatch<React.SetStateAction<boolean>>
+		// 		) => {
+		// 			this.player = player;
+		// 			this.setPlaying = setPlaying;
+		// 		};
+
+		// 		const setupError = (err: string) => {
+		// 			console.log("react player err: ", err);
+		// 			editor.replaceSelection(
+		// 				editor.getSelection() +
+		// 					`\n> [!error] Streaming Error \n> ${err}\n`
+		// 			);
+		// 		};
+
+		// 		const saveTimeOnUnload = async () => {
+		// 			if (this.player) {
+		// 				this.settings.urlStartTimeMap.set(
+		// 					url,
+		// 					Number(this.player.getCurrentTime().toFixed(0))
+		// 				);
+		// 			}
+		// 			await this.saveSettings();
+		// 		};
+
+		// 		// create a new video instance, sets up state/unload functionality, and passes in a start time if available else 0
+		// 		leaf.setEphemeralState({
+		// 			url,
+		// 			setupPlayer,
+		// 			setupError,
+		// 			saveTimeOnUnload,
+		// 			start: ~~this.settings.urlStartTimeMap.get(url),
+		// 		});
+
+		// 		await this.saveSettings();
+		// 	}
+		// });
 	}
 
 	async loadSettings() {
@@ -352,6 +398,7 @@ class LocalVideoModal extends Modal {
 }
 
 function _urlFromFile(file: File) {
+	// console.log("_urlFromFile");
 	if (file instanceof File) {
 		return URL.createObjectURL(file);
 	} else {
@@ -360,19 +407,18 @@ function _urlFromFile(file: File) {
 }
 
 async function _urlFromFilePath(fpath: string): Promise<string> {
+	// console.log("_urlFromFilePath", app);
 	const path = require("path");
 	const normalizedFPath = path.normalize(fpath);
 
 	if (path.isAbsolute(normalizedFPath)) {
-		if (path.isAbsolute(normalizedFPath)) {
-			return _urlFromFile(
-				//XXX: being this direct will fail on files >2GiB and I'm not sure how to get it to behave
-				new File(
-					[await app.vault.adapter.readBinary(normalizedFPath)],
-					path.basename(normalizedFPath)
-				)
-			);
-		}
+		return _urlFromFile(
+			//XXX: being this direct will fail on files >2GiB and I'm not sure how to get it to behave
+			new File(
+				[await app.vault.adapter.readBinary(normalizedFPath)],
+				path.basename(normalizedFPath)
+			)
+		);
 	}
 
 	let vaultFile: TFile = null;

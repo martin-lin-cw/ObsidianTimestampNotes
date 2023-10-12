@@ -1,9 +1,9 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView, WorkspaceLeaf } from "obsidian";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { createRoot, Root } from 'react-dom/client';
+import { createRoot, Root } from "react-dom/client";
 
-import { VideoContainer, VideoContainerProps } from "./VideoContainer"
+import { VideoContainer, VideoContainerProps } from "./VideoContainer";
 
 export interface VideoViewProps extends VideoContainerProps {
 	saveTimeOnUnload: () => void;
@@ -11,13 +11,14 @@ export interface VideoViewProps extends VideoContainerProps {
 
 export const VIDEO_VIEW = "video-view";
 export class VideoView extends ItemView {
-	component: ReactDOM.Renderer
-	saveTimeOnUnload: () => void
-	root: Root
+	component: ReactDOM.Renderer;
+	saveTimeOnUnload: () => void;
+	root: Root;
 	constructor(leaf: WorkspaceLeaf) {
+		// console.log("create video view");
 		super(leaf);
-		this.saveTimeOnUnload = () => { };
-		this.root = createRoot(this.containerEl.children[1])
+		this.saveTimeOnUnload = () => {};
+		this.root = createRoot(this.containerEl.children[1]);
 	}
 
 	getViewType() {
@@ -32,9 +33,14 @@ export class VideoView extends ItemView {
 		return "video";
 	}
 
-	setEphemeralState({ url, setupPlayer, setupError, saveTimeOnUnload, start }: VideoViewProps) {
-
-		// Allows view to save the playback time in the setting state when the view is closed 
+	setEphemeralState({
+		url,
+		setupPlayer,
+		setupError,
+		saveTimeOnUnload,
+		start,
+	}: VideoViewProps) {
+		// Allows view to save the playback time in the setting state when the view is closed
 		this.saveTimeOnUnload = saveTimeOnUnload;
 
 		// Create a root element for the view to render into
@@ -49,8 +55,9 @@ export class VideoView extends ItemView {
 	}
 
 	async onClose() {
-		if (this.saveTimeOnUnload) await this.saveTimeOnUnload();
-		this.root.unmount()
+		// console.log("close video view");
+		this.root.unmount();
+		// if (this.saveTimeOnUnload) await this.saveTimeOnUnload();
 		ReactDOM.unmountComponentAtNode(this.containerEl.children[1]);
 	}
 }
